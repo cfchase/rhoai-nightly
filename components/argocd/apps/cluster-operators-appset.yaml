@@ -1,26 +1,31 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: instances
+  name: cluster-operators-applicationset
   namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   generators:
     - git:
         repoURL: https://github.com/cfchase/rhoai-nightly
         revision: main
         directories:
-          - path: components/instances/*
+          - path: components/operators/*
   template:
     metadata:
-      name: 'instance-{{path.basename}}'
+      name: "{{path.basename}}"
     spec:
       project: default
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
       source:
         repoURL: https://github.com/cfchase/rhoai-nightly
         targetRevision: main
-        path: '{{path}}'
+        path: "{{path}}"
       destination:
         server: https://kubernetes.default.svc
-      syncPolicy:
-        automated:
-          selfHeal: true
+        namespace: openshift-gitops

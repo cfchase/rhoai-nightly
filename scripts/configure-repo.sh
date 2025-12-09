@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# configure-repo.sh - Update repo URLs in applicationsets for forks
+# configure-repo.sh - Update repo URLs for forks
 #
 # Usage:
 #   ./configure-repo.sh
@@ -28,17 +28,33 @@ log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 
 log_info "Updating repo URLs to: $GITOPS_REPO_URL"
 log_info "Updating branch to: $GITOPS_BRANCH"
-log_warn "Note: bootstrap/root-app uses GITOPS_REPO_URL/GITOPS_BRANCH from .env at runtime"
 
-# Update applicationsets
-for file in "$REPO_ROOT"/applicationsets/*.yaml; do
-    if [[ -f "$file" ]]; then
+# Update ApplicationSets in components/argocd/apps/
+for file in "$REPO_ROOT"/components/argocd/apps/*.yaml; do
+    if [[ -f "$file" && "$file" != *"kustomization.yaml" ]]; then
         sed -i '' "s|repoURL: https://github.com/[^/]*/rhoai-nightly|repoURL: $GITOPS_REPO_URL|g" "$file"
         sed -i '' "s|revision: main|revision: $GITOPS_BRANCH|g" "$file"
         sed -i '' "s|targetRevision: main|targetRevision: $GITOPS_BRANCH|g" "$file"
         log_info "Updated: $file"
     fi
 done
+
+# Update cluster overlay patches
+for file in "$REPO_ROOT"/clusters/overlays/rhoaibu-cluster-nightly/patch-*.yaml; do
+    if [[ -f "$file" ]]; then
+        sed -i '' "s|value: https://github.com/[^/]*/rhoai-nightly|value: $GITOPS_REPO_URL|g" "$file"
+        sed -i '' "s|value: main|value: $GITOPS_BRANCH|g" "$file"
+        log_info "Updated: $file"
+    fi
+done
+
+# Update bootstrap cluster-config-app
+CLUSTER_CONFIG="$REPO_ROOT/bootstrap/rhoaibu-cluster-nightly/cluster-config-app.yaml"
+if [[ -f "$CLUSTER_CONFIG" ]]; then
+    sed -i '' "s|repoURL: https://github.com/[^/]*/rhoai-nightly|repoURL: $GITOPS_REPO_URL|g" "$CLUSTER_CONFIG"
+    sed -i '' "s|targetRevision: main|targetRevision: $GITOPS_BRANCH|g" "$CLUSTER_CONFIG"
+    log_info "Updated: $CLUSTER_CONFIG"
+fi
 
 echo ""
 log_info "Review changes with: git diff"

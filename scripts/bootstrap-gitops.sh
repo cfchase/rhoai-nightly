@@ -5,18 +5,15 @@
 # Usage:
 #   ./bootstrap-gitops.sh
 #
-# Environment variables (can also be set in .env):
-#   GITOPS_REPO_URL  - Git repository URL (default: https://github.com/cfchase/rhoai-nightly)
-#   GITOPS_BRANCH    - Git branch (default: main)
+# This script applies bootstrap/rhoaibu-cluster-nightly which includes:
+#   - OpenShift GitOps operator
+#   - ArgoCD instance
+#   - cluster-config Application (root app)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-# Defaults (can be overridden by env vars)
-GITOPS_REPO_URL="${GITOPS_REPO_URL:-https://github.com/cfchase/rhoai-nightly}"
-GITOPS_BRANCH="${GITOPS_BRANCH:-main}"
 
 # Colors
 GREEN='\033[0;32m'
@@ -37,12 +34,10 @@ if ! oc whoami &>/dev/null; then
 fi
 
 log_info "Connected to: $(oc whoami --show-server)"
-log_info "GitOps Repo: $GITOPS_REPO_URL"
-log_info "GitOps Branch: $GITOPS_BRANCH"
 
-# Step 1: Install GitOps Operator
-log_step "Installing OpenShift GitOps operator..."
-until oc apply -k "$REPO_ROOT/bootstrap/gitops-operator/" 2>/dev/null; do
+# Step 1: Apply bootstrap kustomization (operator + instance + root app)
+log_step "Applying bootstrap kustomization..."
+until oc apply -k "$REPO_ROOT/bootstrap/rhoaibu-cluster-nightly/" 2>/dev/null; do
     log_info "Waiting for CRDs... retrying in 2s"
     sleep 2
 done
@@ -72,21 +67,14 @@ for i in {1..30}; do
     sleep 2
 done
 
-# Step 4: Apply ArgoCD Instance
-log_step "Applying ArgoCD instance..."
-until oc apply -k "$REPO_ROOT/bootstrap/argocd-instance/" 2>/dev/null; do
-    sleep 2
-done
-
-# Step 5: Wait for ArgoCD Server
+# Step 4: Wait for ArgoCD Server
 log_step "Waiting for ArgoCD server..."
 oc wait --for=condition=Available deployment/openshift-gitops-server \
     -n openshift-gitops --timeout=300s 2>/dev/null || log_warn "Timeout, continuing..."
 
-# Step 6: Apply Root Application (with repo URL substitution)
-log_step "Applying root Application..."
-export GITOPS_REPO_URL GITOPS_BRANCH
-envsubst < "$REPO_ROOT/bootstrap/root-app/root-app-template.yaml" | oc apply -f -
+# Step 5: Re-apply to ensure root app is created (after ArgoCD is ready)
+log_step "Ensuring cluster-config Application exists..."
+oc apply -k "$REPO_ROOT/bootstrap/rhoaibu-cluster-nightly/" 2>/dev/null || true
 
 log_info "Bootstrap complete!"
 ROUTE=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "pending")

@@ -1,0 +1,6 @@
+- op: replace
+  path: /spec/template/spec/source/repoURL
+  value: https://github.com/cfchase/rhoai-nightly
+- op: replace
+  path: /spec/template/spec/source/targetRevision
+  value: main

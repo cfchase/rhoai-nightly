@@ -1,16 +1,18 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root
+  name: cluster-config
   namespace: openshift-gitops
 spec:
   project: default
   source:
-    repoURL: ${GITOPS_REPO_URL}
-    targetRevision: ${GITOPS_BRANCH}
-    path: applicationsets
+    repoURL: https://github.com/cfchase/rhoai-nightly
+    targetRevision: main
+    path: clusters/overlays/rhoaibu-cluster-nightly
   destination:
     server: https://kubernetes.default.svc
+    namespace: openshift-gitops
   syncPolicy:
     automated:
+      prune: false
       selfHeal: true
