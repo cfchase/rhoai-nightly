@@ -15,6 +15,11 @@ spec:
               name: instance-nfd
               path: components/instances/nfd-instance/overlays/nvidia
               namespace: openshift-gitops
+          - cluster: local
+            values:
+              name: instance-nvidia
+              path: components/instances/nvidia-instance/base
+              namespace: openshift-gitops
   template:
     metadata:
       name: "{{values.name}}"
