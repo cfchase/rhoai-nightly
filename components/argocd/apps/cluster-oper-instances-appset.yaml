@@ -20,6 +20,11 @@ spec:
               name: instance-nvidia
               path: components/instances/nvidia-instance/base
               namespace: openshift-gitops
+          - cluster: local
+            values:
+              name: instance-lws
+              path: components/instances/leader-worker-set-instance/base
+              namespace: openshift-gitops
   template:
     metadata:
       name: "{{values.name}}"
