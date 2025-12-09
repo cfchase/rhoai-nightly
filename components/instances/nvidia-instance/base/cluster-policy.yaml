@@ -3,44 +3,97 @@ kind: ClusterPolicy
 metadata:
   name: gpu-cluster-policy
 spec:
+  vgpuDeviceManager:
+    config:
+      default: default
+    enabled: true
+  migManager:
+    config:
+      default: all-disabled
+      name: default-mig-parted-config
+    enabled: true
   operator:
     defaultRuntime: crio
+    initContainer: {}
     runtimeClass: nvidia
     use_ocp_driver_toolkit: true
   dcgm:
     enabled: true
-  dcgmExporter:
-    enabled: true
-    serviceMonitor:
-      enabled: true
-  devicePlugin:
-    enabled: true
-  driver:
-    enabled: true
-    licensingConfig:
-      nlsEnabled: true
-    upgradePolicy:
-      autoUpgrade: true
-      maxParallelUpgrades: 1
-      maxUnavailable: 25%
   gfd:
     enabled: true
-  migManager:
+  dcgmExporter:
+    config:
+      name: ''
+    serviceMonitor:
+      enabled: true
     enabled: true
-  nodeStatusExporter:
+  cdi:
+    default: false
     enabled: true
+  driver:
+    licensingConfig:
+      nlsEnabled: true
+      secretName: ''
+    kernelModuleType: auto
+    certConfig:
+      name: ''
+    kernelModuleConfig:
+      name: ''
+    upgradePolicy:
+      autoUpgrade: true
+      drain:
+        deleteEmptyDir: false
+        enable: false
+        force: false
+        timeoutSeconds: 300
+      maxParallelUpgrades: 1
+      maxUnavailable: 25%
+      podDeletion:
+        deleteEmptyDir: false
+        force: false
+        timeoutSeconds: 300
+      waitForCompletion:
+        timeoutSeconds: 0
+    repoConfig:
+      configMapName: ''
+    virtualTopology:
+      config: ''
+    enabled: true
+    useNvidiaDriverCRD: false
+  devicePlugin:
+    config:
+      name: ''
+      default: ''
+    mps:
+      root: /run/nvidia/mps
+    enabled: true
+  gdrcopy:
+    enabled: false
+  kataManager:
+    config:
+      artifactsDir: /opt/nvidia-gpu-operator/artifacts/runtimeclasses
+  mig:
+    strategy: single
   sandboxDevicePlugin:
-    enabled: true
-  toolkit:
     enabled: true
   validator:
     plugin:
-      env:
-        - name: WITH_WORKLOAD
-          value: 'false'
-  vfioManager:
+      env: []
+  nodeStatusExporter:
     enabled: true
-  vgpuDeviceManager:
-    enabled: true
+  daemonsets:
+    rollingUpdate:
+      maxUnavailable: '1'
+    updateStrategy: RollingUpdate
+  sandboxWorkloads:
+    defaultWorkload: container
+    enabled: false
+  gds:
+    enabled: false
   vgpuManager:
     enabled: false
+  vfioManager:
+    enabled: true
+  toolkit:
+    installDir: /usr/local/nvidia
+    enabled: true
