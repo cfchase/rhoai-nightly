@@ -10,97 +10,20 @@ metadata:
   namespace: redhat-ods-applications
 spec:
   dashboardConfig:
-    enablement: true
-    disableDistributedWorkloads: false
-    disableProjects: false
-    disableBiasMetrics: false
-    disableSupport: true
-    disablePipelines: false
-    disableProjectSharing: false
-    disableModelServing: false
-    disableKServe: false
-    disableAcceleratorProfiles: false
-    disableCustomServingRuntimes: false
-    disableModelMesh: false
-    disableISVBadges: false
-    disableInfo: true
-    disableClusterManager: false
-    disablePerformanceMetrics: false
-    disableBYONImageStream: false
+    # Overrides only - features not listed use blankDashboardCR defaults
     disableTracking: false
-    disableModelCatalog: false
+    # Enable RHOAI 3.2 features (default is disabled)
+    genAiStudio: true
+    modelAsService: true
+    disableLMEval: false
+    disableKueue: false
   groupsConfig:
     adminGroups: "rhoai-admins,rhods-admins,cluster-admins"
     allowedGroups: "system:authenticated"
-  modelServerSizes:
-    - name: Small
-      resources:
-        limits:
-          cpu: "2"
-          memory: 8Gi
-        requests:
-          cpu: "1"
-          memory: 4Gi
-    - name: Medium
-      resources:
-        limits:
-          cpu: "6"
-          memory: 16Gi
-        requests:
-          cpu: "4"
-          memory: 8Gi
-    - name: Large
-      resources:
-        limits:
-          cpu: "10"
-          memory: 20Gi
-        requests:
-          cpu: "6"
-          memory: 16Gi
   notebookController:
-    enabled: false
+    enabled: true
     notebookNamespace: rhods-notebooks
     pvcSize: 20Gi
-  notebookSizes:
-    - name: Tiny
-      resources:
-        limits:
-          cpu: "1"
-          memory: 1Gi
-        requests:
-          cpu: 500m
-          memory: 1Gi
-    - name: Small
-      resources:
-        limits:
-          cpu: "2"
-          memory: 8Gi
-        requests:
-          cpu: "1"
-          memory: 8Gi
-    - name: Medium
-      resources:
-        limits:
-          cpu: "6"
-          memory: 24Gi
-        requests:
-          cpu: "3"
-          memory: 16Gi
-    - name: Large
-      resources:
-        limits:
-          cpu: "14"
-          memory: 56Gi
-        requests:
-          cpu: "7"
-          memory: 56Gi
-    - name: X Large
-      resources:
-        limits:
-          cpu: "30"
-          memory: 120Gi
-        requests:
-          cpu: "15"
-          memory: 120Gi
   templateDisablement: []
   templateOrder: []
+  hardwareProfileOrder: []
