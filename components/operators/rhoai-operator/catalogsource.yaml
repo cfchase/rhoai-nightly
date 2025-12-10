@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: rhoai-catalog-nightly
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: quay.io/rhoai/rhoai-fbc-fragment:rhoai-3.2-nightly
+  displayName: RHOAI 3.2 Nightly
+  publisher: Red Hat
+  updateStrategy:
+    registryPoll:
+      interval: 15m
