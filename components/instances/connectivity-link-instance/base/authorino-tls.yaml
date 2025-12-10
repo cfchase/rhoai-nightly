@@ -4,7 +4,7 @@ metadata:
   name: authorino
   namespace: kuadrant-system
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   clusterWide: true
   replicas: 1
