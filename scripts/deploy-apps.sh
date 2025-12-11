@@ -57,10 +57,37 @@ log_step "Applying cluster-config Application..."
 oc apply -f "$REPO_ROOT/bootstrap/rhoaibu-cluster-nightly/cluster-config-app.yaml"
 
 log_info "Root application deployed!"
+
+# Expected apps that should be created by ApplicationSets
+EXPECTED_APPS=(
+    "nfd" "instance-nfd"
+    "nvidia-operator" "instance-nvidia"
+    "openshift-service-mesh" "kueue-operator"
+    "leader-worker-set" "instance-lws"
+    "jobset-operator" "instance-jobset"
+    "connectivity-link" "instance-kuadrant"
+    "rhoai-operator" "instance-rhoai"
+)
+
+# Wait for ApplicationSets to create all expected apps
+log_step "Waiting for ApplicationSets to create all apps..."
+APP_WAIT_TIMEOUT=120
+start_time=$(date +%s)
+
+for app in "${EXPECTED_APPS[@]}"; do
+    while ! oc get application.argoproj.io/"$app" -n openshift-gitops &>/dev/null; do
+        elapsed=$(($(date +%s) - start_time))
+        if [[ $elapsed -ge $APP_WAIT_TIMEOUT ]]; then
+            log_error "Timeout waiting for app '$app' to be created"
+            exit 1
+        fi
+        printf "  Waiting for app: %s (%ds)...\r" "$app" "$elapsed"
+        sleep 3
+    done
+done
+echo ""
+
+log_info "All ${#EXPECTED_APPS[@]} apps created!"
 log_info ""
-log_info "The cluster-config app will now sync and deploy all operators."
-log_info "This may take 10-15 minutes for all operators to install."
-log_info ""
-log_info "Monitor progress with:"
-log_info "  make status"
-log_info "  oc get applications -n openshift-gitops"
+log_info "Apps are deployed with sync DISABLED."
+log_info "Run 'make sync' to sync apps in dependency order."

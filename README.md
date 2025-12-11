@@ -34,10 +34,11 @@ This runs the full setup:
 
 1. `pull-secret` - Add quay.io/rhoai credentials
 2. `icsp` - Configure registry mirror (waits ~10-15 min for node restart)
-3. `gpu` - Create GPU MachineSet g5.2xlarge (waits for node Ready, autoscale 1-3)
-4. `cpu` - Create CPU MachineSet m6a.4xlarge (waits for node Ready, autoscale 1-3)
+3. `cpu` - Create CPU MachineSet m6a.4xlarge (waits for node Ready, autoscale 1-3)
+4. `gpu` - Create GPU MachineSet g5.2xlarge (waits for node Ready, autoscale 1-3)
 5. `gitops` - Install GitOps operator + ArgoCD (waits for ready)
-6. `deploy` - Deploy root app (triggers all GitOps syncs)
+6. `deploy` - Deploy ArgoCD apps (sync disabled by default)
+7. `sync` - Staged sync of all apps one-by-one in dependency order
 
 Optionally run `make dedicate-masters` to remove worker role from master nodes.
 
@@ -48,11 +49,16 @@ Run steps individually if needed:
 ```bash
 make pull-secret      # Add credentials
 make icsp             # Apply ICSP (triggers node restart)
-make gpu              # Create GPU workers
 make cpu              # Create CPU workers
+make gpu              # Create GPU workers
+make setup            # Run pull-secret + icsp + cpu + gpu
+
 make gitops           # Install GitOps operator + ArgoCD
-make deploy           # Deploy root app
+make deploy           # Deploy ArgoCD apps (sync disabled)
 make bootstrap        # Run gitops + deploy together
+
+make sync             # Staged sync all apps in order (RECOMMENDED)
+make sync-app APP=nfd # Sync a single app
 ```
 
 ## Validation
@@ -68,9 +74,17 @@ make validate # Full validation
 ```bash
 make refresh                             # Force pull latest nightly images
 make scale NAME=<machineset> REPLICAS=N  # Scale a MachineSet
-make sync-disable                        # Disable ArgoCD auto-sync
-make sync-enable                         # Re-enable ArgoCD auto-sync
 make dedicate-masters                    # Remove worker role from masters
+```
+
+## Sync Control
+
+After `make sync`, apps have auto-sync **ON** and will self-heal from git.
+
+```bash
+make sync-disable                        # Disable auto-sync (for manual changes)
+make sync-enable                         # Re-enable auto-sync
+make sync-app APP=<name>                 # Sync single app + enable auto-sync on it
 ```
 
 ## Requirements
