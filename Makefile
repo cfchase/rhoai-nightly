@@ -9,7 +9,7 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-.PHONY: help check gpu cpu pull-secret icsp setup gitops deploy bootstrap status validate all clean configure-repo scale refresh sync-disable sync-enable dedicate-masters
+.PHONY: help check gpu cpu pull-secret icsp setup gitops deploy bootstrap status validate all clean configure-repo scale refresh sync sync-app sync-disable sync-enable dedicate-masters
 
 # Default target - run everything
 .DEFAULT_GOAL := all
@@ -30,8 +30,10 @@ help:
 	@echo ""
 	@echo "Bootstrap GitOps:"
 	@echo "  make gitops       - Install GitOps operator + ArgoCD (waits for ready)"
-	@echo "  make deploy       - Deploy root app (triggers all GitOps syncs)"
+	@echo "  make deploy       - Deploy root app (creates apps with sync DISABLED)"
 	@echo "  make bootstrap    - Run gitops + deploy"
+	@echo "  make sync         - Sync all apps one-by-one in dependency order (RECOMMENDED)"
+	@echo "  make sync-app APP=<name> - Sync a single app (e.g., APP=nfd)"
 	@echo ""
 	@echo "Validation:"
 	@echo "  make check        - Verify cluster connection"
@@ -111,10 +113,10 @@ validate:
 	@scripts/validate.sh
 
 # Full autonomous run
-all: setup bootstrap
+all: setup bootstrap sync
 	@echo ""
 	@echo "Full setup complete!"
-	@echo "Next: Add components incrementally via git commits"
+	@echo "RHOAI 3.2 nightly is now deploying."
 
 # Clean up (dangerous!)
 clean:
@@ -146,6 +148,21 @@ refresh:
 	@echo ""
 	@echo "Refresh initiated! Operator will reconcile with latest images."
 	@echo "Monitor with: oc get pods -n redhat-ods-operator -w"
+
+# Sync all apps one-by-one in dependency order (RECOMMENDED)
+sync:
+	@chmod +x scripts/sync-apps.sh
+	@scripts/sync-apps.sh
+
+# Sync a single app and trigger immediate sync
+sync-app:
+	@echo "Enabling sync for $(APP)..."
+	@oc patch application/$(APP) -n openshift-gitops --type=merge \
+	  -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+	@echo "Triggering sync..."
+	@oc annotate application/$(APP) -n openshift-gitops \
+	  argocd.argoproj.io/refresh=normal --overwrite
+	@echo "Sync enabled and triggered for $(APP)"
 
 # Disable auto-sync on all ArgoCD applications
 sync-disable:

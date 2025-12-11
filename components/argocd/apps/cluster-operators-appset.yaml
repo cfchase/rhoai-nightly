@@ -18,10 +18,7 @@ spec:
       name: "{{path.basename}}"
     spec:
       project: default
-      syncPolicy:
-        automated:
-          prune: false
-          selfHeal: true
+      syncPolicy: {}
       source:
         repoURL: https://github.com/cfchase/rhoai-nightly
         targetRevision: main
