@@ -4,15 +4,13 @@ metadata:
   name: authorino
   namespace: kuadrant-system
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   clusterWide: true
   replicas: 1
   listener:
     tls:
-      enabled: true
-      certSecretRef:
-        name: authorino-server-cert
+      enabled: false
   oidcServer:
     tls:
       enabled: false
