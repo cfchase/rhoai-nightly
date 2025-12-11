@@ -22,8 +22,8 @@ help:
 	@echo "  make icsp         - Create ICSP (waits for MCP update ~10-15 min)"
 	@echo "  make gpu          - Create GPU MachineSet (waits for node Ready)"
 	@echo "  make cpu          - Create CPU MachineSet (waits for node Ready)"
-	@echo "  make dedicate-masters - Remove worker role from master nodes"
-	@echo "  make setup        - Run all above in order"
+	@echo "  make setup        - Run all above (except dedicate-masters)"
+	@echo "  make dedicate-masters - Remove worker role from masters (optional)"
 	@echo ""
 	@echo "Credentials: Copy .env.example to .env and fill in values"
 	@echo "             Or: QUAY_USER=x QUAY_TOKEN=y make pull-secret"
@@ -79,9 +79,9 @@ icsp:
 	@chmod +x scripts/create-icsp.sh
 	@scripts/create-icsp.sh
 
-# All pre-GitOps setup (pull-secret, icsp, workers, then dedicate masters)
+# All pre-GitOps setup (pull-secret, icsp, workers)
 # Each script waits for its resources to be ready before returning
-setup: pull-secret icsp gpu cpu dedicate-masters
+setup: pull-secret icsp gpu cpu
 	@echo ""
 	@echo "Pre-GitOps setup complete!"
 
