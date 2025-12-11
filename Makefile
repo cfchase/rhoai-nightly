@@ -158,24 +158,24 @@ sync:
 # Sync a single app and trigger immediate sync
 sync-app:
 	@echo "Enabling sync for $(APP)..."
-	@oc patch application/$(APP) -n openshift-gitops --type=merge \
+	@oc patch application.argoproj.io/$(APP) -n openshift-gitops --type=merge \
 	  -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
 	@echo "Triggering sync..."
-	@oc annotate application/$(APP) -n openshift-gitops \
+	@oc annotate application.argoproj.io/$(APP) -n openshift-gitops \
 	  argocd.argoproj.io/refresh=normal --overwrite
 	@echo "Sync enabled and triggered for $(APP)"
 
 # Disable auto-sync on all ArgoCD applications
 sync-disable:
 	@echo "Disabling auto-sync on all ArgoCD applications..."
-	@oc get applications -n openshift-gitops -o name | xargs -I {} oc patch {} -n openshift-gitops --type=merge -p '{"spec":{"syncPolicy":{"automated":null}}}'
+	@oc get applications.argoproj.io -n openshift-gitops -o name | xargs -I {} oc patch {} -n openshift-gitops --type=merge -p '{"spec":{"syncPolicy":{"automated":null}}}'
 	@echo "Auto-sync disabled. You can now make manual changes."
 	@echo "Re-enable with: make sync-enable"
 
 # Re-enable auto-sync on all ArgoCD applications
 sync-enable:
 	@echo "Re-enabling auto-sync on all ArgoCD applications..."
-	@oc get applications -n openshift-gitops -o name | xargs -I {} oc patch {} -n openshift-gitops --type=merge -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+	@oc get applications.argoproj.io -n openshift-gitops -o name | xargs -I {} oc patch {} -n openshift-gitops --type=merge -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
 	@echo "Auto-sync re-enabled."
 
 # Remove worker role from master nodes (run after workers are Ready)
