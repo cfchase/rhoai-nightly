@@ -9,7 +9,7 @@
 #   ./create-cpu-machineset.sh [OPTIONS]
 #
 # Options:
-#   --instance-type TYPE   Instance type (default: m5.2xlarge)
+#   --instance-type TYPE   Instance type (default: m6a.4xlarge)
 #   --replicas N           Number of replicas (default: 2)
 #   --az ZONE              Availability zone (default: auto-detected)
 #   --volume-size GB       Root volume size in GB (default: 120)
@@ -38,7 +38,7 @@ log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # Defaults (can be overridden by env vars or CLI args)
-INSTANCE_TYPE="${CPU_INSTANCE_TYPE:-${INSTANCE_TYPE:-m5.4xlarge}}"
+INSTANCE_TYPE="${CPU_INSTANCE_TYPE:-${INSTANCE_TYPE:-m6a.4xlarge}}"
 REPLICAS="${CPU_REPLICAS:-${REPLICAS:-1}}"
 AZ="${CPU_AZ:-}"
 VOLUME_SIZE="${CPU_VOLUME_SIZE:-${VOLUME_SIZE:-120}}"
@@ -62,7 +62,7 @@ Usage: $0 [OPTIONS]
 Creates dedicated CPU worker nodes separate from master/infra nodes.
 
 Options:
-  --instance-type TYPE   Instance type (default: m5.4xlarge)
+  --instance-type TYPE   Instance type (default: m6a.4xlarge)
   --replicas N           Number of replicas (default: 1)
   --az ZONE              Availability zone (default: auto-detected)
   --volume-size GB       Root volume size in GB (default: 120)

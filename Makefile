@@ -9,7 +9,7 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-.PHONY: help check gpu cpu pull-secret icsp setup bootstrap status validate all clean configure-repo scale refresh sync-disable sync-enable dedicate-masters
+.PHONY: help check gpu cpu pull-secret icsp setup gitops deploy bootstrap status validate all clean configure-repo scale refresh sync-disable sync-enable dedicate-masters
 
 # Default target - run everything
 .DEFAULT_GOAL := all
@@ -21,7 +21,7 @@ help:
 	@echo "  make pull-secret  - Add quay.io/rhoai credentials"
 	@echo "  make icsp         - Create ICSP (waits for MCP update ~10-15 min)"
 	@echo "  make gpu          - Create GPU MachineSet (waits for node Ready)"
-	@echo "  make cpu          - Create CPU MachineSet (waits for node Ready)"
+	@echo "  make cpu          - Create CPU MachineSet m6a.4xlarge (waits for node Ready)"
 	@echo "  make setup        - Run all above (except dedicate-masters)"
 	@echo "  make dedicate-masters - Remove worker role from masters (optional)"
 	@echo ""
@@ -29,7 +29,9 @@ help:
 	@echo "             Or: QUAY_USER=x QUAY_TOKEN=y make pull-secret"
 	@echo ""
 	@echo "Bootstrap GitOps:"
-	@echo "  make bootstrap    - Install GitOps operator + ArgoCD"
+	@echo "  make gitops       - Install GitOps operator + ArgoCD (waits for ready)"
+	@echo "  make deploy       - Deploy root app (triggers all GitOps syncs)"
+	@echo "  make bootstrap    - Run gitops + deploy"
 	@echo ""
 	@echo "Validation:"
 	@echo "  make check        - Verify cluster connection"
@@ -85,10 +87,18 @@ setup: pull-secret icsp gpu cpu
 	@echo ""
 	@echo "Pre-GitOps setup complete!"
 
-# Bootstrap GitOps
-bootstrap:
-	@chmod +x scripts/bootstrap-gitops.sh
-	@scripts/bootstrap-gitops.sh
+# Install GitOps operator and ArgoCD
+gitops:
+	@chmod +x scripts/install-gitops.sh
+	@scripts/install-gitops.sh
+
+# Deploy root application (triggers all GitOps syncs)
+deploy:
+	@chmod +x scripts/deploy-apps.sh
+	@scripts/deploy-apps.sh
+
+# Bootstrap GitOps (install + deploy)
+bootstrap: gitops deploy
 
 # Show ArgoCD status
 status:

@@ -7,6 +7,7 @@ Deploy RHOAI 3.2 nightly builds using GitOps on OpenShift.
 ### 1. Provision Cluster
 
 Order **AWS with OpenShift Open Environment** from [demo.redhat.com](https://demo.redhat.com):
+
 - Select region with GPU availability (us-east-2 recommended)
 - Wait for provisioning email with credentials
 
@@ -33,9 +34,10 @@ This runs the full setup:
 
 1. `pull-secret` - Add quay.io/rhoai credentials
 2. `icsp` - Configure registry mirror (waits ~10-15 min for node restart)
-3. `gpu` - Create GPU MachineSet (waits for node Ready)
-4. `cpu` - Create CPU MachineSet (waits for node Ready)
-5. `bootstrap` - Install GitOps operator and deploy ArgoCD apps
+3. `gpu` - Create GPU MachineSet g5.2xlarge (waits for node Ready, autoscale 1-3)
+4. `cpu` - Create CPU MachineSet m6a.4xlarge (waits for node Ready, autoscale 1-3)
+5. `gitops` - Install GitOps operator + ArgoCD (waits for ready)
+6. `deploy` - Deploy root app (triggers all GitOps syncs)
 
 Optionally run `make dedicate-masters` to remove worker role from master nodes.
 
@@ -48,8 +50,9 @@ make pull-secret      # Add credentials
 make icsp             # Apply ICSP (triggers node restart)
 make gpu              # Create GPU workers
 make cpu              # Create CPU workers
-make dedicate-masters # Dedicate master nodes
-make bootstrap        # Deploy GitOps
+make gitops           # Install GitOps operator + ArgoCD
+make deploy           # Deploy root app
+make bootstrap        # Run gitops + deploy together
 ```
 
 ## Validation
@@ -63,10 +66,11 @@ make validate # Full validation
 ## Other Commands
 
 ```bash
-make refresh                           # Force pull latest nightly images
+make refresh                             # Force pull latest nightly images
 make scale NAME=<machineset> REPLICAS=N  # Scale a MachineSet
-make sync-disable                      # Disable ArgoCD auto-sync
-make sync-enable                       # Re-enable ArgoCD auto-sync
+make sync-disable                        # Disable ArgoCD auto-sync
+make sync-enable                         # Re-enable ArgoCD auto-sync
+make dedicate-masters                    # Remove worker role from masters
 ```
 
 ## Requirements
