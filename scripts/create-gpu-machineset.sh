@@ -10,10 +10,11 @@
 #   --replicas N           Number of replicas (default: 1)
 #   --az ZONE              Availability zone (default: auto-detected)
 #   --access-type TYPE     SHARED or PRIVATE (default: SHARED)
-#   --min N                Minimum replicas for autoscaling (enables autoscaling)
-#   --max N                Maximum replicas for autoscaling (enables autoscaling)
+#   --min N                Minimum replicas for autoscaling (default: 1)
+#   --max N                Maximum replicas for autoscaling (default: 3)
 #   --dry-run              Preview without applying
-#   --wait                 Wait for node to become Ready
+#
+# The script always waits for the GPU node to be Ready before exiting.
 #
 # Environment variables (can also be set in .env):
 #   GPU_INSTANCE_TYPE, GPU_REPLICAS, GPU_ACCESS_TYPE, GPU_AZ, GPU_MIN, GPU_MAX
@@ -40,7 +41,6 @@ ACCESS_TYPE="${GPU_ACCESS_TYPE:-${ACCESS_TYPE:-SHARED}}"
 AZ="${GPU_AZ:-}"
 AUTOSCALE_MIN="${GPU_MIN:-1}"
 AUTOSCALE_MAX="${GPU_MAX:-3}"
-WAIT=false
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
@@ -52,7 +52,6 @@ while [[ $# -gt 0 ]]; do
         --min) AUTOSCALE_MIN="$2"; shift 2 ;;
         --max) AUTOSCALE_MAX="$2"; shift 2 ;;
         --dry-run) DRY_RUN=true; shift ;;
-        --wait) WAIT=true; shift ;;
         -h|--help)
             cat <<EOF
 Usage: $0 [OPTIONS]
@@ -62,13 +61,14 @@ Options:
   --replicas N           Number of replicas (default: 1)
   --az ZONE              Availability zone (default: auto-detected)
   --access-type TYPE     SHARED or PRIVATE (default: SHARED)
-  --min N                Minimum replicas for autoscaling (enables autoscaling)
-  --max N                Maximum replicas for autoscaling (enables autoscaling)
+  --min N                Minimum replicas for autoscaling (default: 1)
+  --max N                Maximum replicas for autoscaling (default: 3)
   --dry-run              Preview without applying
-  --wait                 Wait for GPU node to be Ready
+
+The script always waits for GPU node(s) to be Ready before exiting.
 
 Autoscaling:
-  When --min and --max are provided, the script will:
+  Autoscaling is enabled by default. The script will:
   1. Create a ClusterAutoscaler (if not exists)
   2. Create a MachineAutoscaler for the GPU MachineSet
   3. Set initial replicas to --min value
@@ -217,23 +217,35 @@ EOF
     log_info "MachineAutoscaler created: $MS_NAME (min=$AUTOSCALE_MIN, max=$AUTOSCALE_MAX)"
 fi
 
-if [[ "$WAIT" == "true" ]]; then
-    log_info "Waiting for GPU node to be Ready (5-10 minutes)..."
+# Always wait for GPU node to be Ready
+log_info "Waiting for GPU node to be Ready (this may take 5-15 minutes)..."
 
-    for i in {1..60}; do
-        NODE=$(oc get nodes -l node-role.kubernetes.io/gpu -o name 2>/dev/null | head -1)
-        if [[ -n "$NODE" ]]; then
-            READY=$(oc get "$NODE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
-            if [[ "$READY" == "True" ]]; then
-                log_info "GPU Node is Ready: $NODE"
-                exit 0
-            fi
+TIMEOUT=1200  # 20 minutes
+INTERVAL=15
+ELAPSED=0
+
+while [[ $ELAPSED -lt $TIMEOUT ]]; do
+    # Check Machine status first
+    MACHINE_STATUS=$(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machineset=$MS_NAME -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Unknown")
+
+    NODE=$(oc get nodes -l node-role.kubernetes.io/gpu -o name 2>/dev/null | head -1)
+    if [[ -n "$NODE" ]]; then
+        READY=$(oc get "$NODE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")
+        if [[ "$READY" == "True" ]]; then
+            log_info "GPU node is Ready!"
+            oc get nodes -l node-role.kubernetes.io/gpu
+            exit 0
         fi
-        echo -n "."
-        sleep 10
-    done
-    echo
-    log_warn "Timeout waiting for GPU node"
-fi
+        log_info "GPU node exists but not Ready yet (Machine: $MACHINE_STATUS, Node Ready: $READY)"
+    else
+        log_info "Waiting for GPU node... (Machine phase: $MACHINE_STATUS)"
+    fi
 
-log_info "Monitor with: oc get machines -n openshift-machine-api -w | grep gpu"
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
+done
+
+log_warn "Timeout waiting for GPU node after $TIMEOUT seconds"
+log_warn "Check machine status: oc get machines -n openshift-machine-api | grep gpu"
+log_warn "Check events: oc get events -n openshift-machine-api --sort-by='.lastTimestamp' | tail -20"
+exit 1

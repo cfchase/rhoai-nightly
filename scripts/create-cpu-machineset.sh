@@ -13,10 +13,11 @@
 #   --replicas N           Number of replicas (default: 2)
 #   --az ZONE              Availability zone (default: auto-detected)
 #   --volume-size GB       Root volume size in GB (default: 120)
-#   --min N                Minimum replicas for autoscaling (enables autoscaling)
-#   --max N                Maximum replicas for autoscaling (enables autoscaling)
+#   --min N                Minimum replicas for autoscaling (default: 1)
+#   --max N                Maximum replicas for autoscaling (default: 3)
 #   --dry-run              Preview without applying
-#   --wait                 Wait for nodes to become Ready
+#
+# The script always waits for the CPU worker node(s) to be Ready before exiting.
 #
 # Environment variables (can also be set in .env):
 #   CPU_INSTANCE_TYPE, CPU_REPLICAS, CPU_AZ, CPU_VOLUME_SIZE, CPU_MIN, CPU_MAX
@@ -43,7 +44,6 @@ AZ="${CPU_AZ:-}"
 VOLUME_SIZE="${CPU_VOLUME_SIZE:-${VOLUME_SIZE:-120}}"
 AUTOSCALE_MIN="${CPU_MIN:-1}"
 AUTOSCALE_MAX="${CPU_MAX:-3}"
-WAIT=false
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
@@ -55,7 +55,6 @@ while [[ $# -gt 0 ]]; do
         --min) AUTOSCALE_MIN="$2"; shift 2 ;;
         --max) AUTOSCALE_MAX="$2"; shift 2 ;;
         --dry-run) DRY_RUN=true; shift ;;
-        --wait) WAIT=true; shift ;;
         -h|--help)
             cat <<EOF
 Usage: $0 [OPTIONS]
@@ -67,13 +66,14 @@ Options:
   --replicas N           Number of replicas (default: 1)
   --az ZONE              Availability zone (default: auto-detected)
   --volume-size GB       Root volume size in GB (default: 120)
-  --min N                Minimum replicas for autoscaling (enables autoscaling)
-  --max N                Maximum replicas for autoscaling (enables autoscaling)
+  --min N                Minimum replicas for autoscaling (default: 1)
+  --max N                Maximum replicas for autoscaling (default: 3)
   --dry-run              Preview without applying
-  --wait                 Wait for nodes to be Ready
+
+The script always waits for CPU worker node(s) to be Ready before exiting.
 
 Autoscaling:
-  When --min and --max are provided, the script will:
+  Autoscaling is enabled by default. The script will:
   1. Create a ClusterAutoscaler (if not exists)
   2. Create a MachineAutoscaler for the CPU MachineSet
   3. Set initial replicas to --min value
@@ -225,22 +225,35 @@ EOF
     log_info "MachineAutoscaler created: $MS_NAME (min=$AUTOSCALE_MIN, max=$AUTOSCALE_MAX)"
 fi
 
-if [[ "$WAIT" == "true" ]]; then
-    log_info "Waiting for CPU worker nodes to be Ready (5-10 minutes)..."
+# Always wait for CPU worker node to be Ready
+log_info "Waiting for CPU worker node to be Ready (this may take 5-15 minutes)..."
 
-    EXPECTED_READY=$REPLICAS
-    for i in {1..60}; do
-        READY_COUNT=$(oc get nodes -l node-role.kubernetes.io/cpu-worker --no-headers 2>/dev/null | grep -c " Ready" || echo 0)
-        if [[ "$READY_COUNT" -ge "$EXPECTED_READY" ]]; then
-            log_info "CPU worker nodes are Ready: $READY_COUNT/$EXPECTED_READY"
+TIMEOUT=1200  # 20 minutes
+INTERVAL=15
+ELAPSED=0
+
+while [[ $ELAPSED -lt $TIMEOUT ]]; do
+    # Check Machine status first
+    MACHINE_STATUS=$(oc get machines -n openshift-machine-api -l machine.openshift.io/cluster-api-machineset=$MS_NAME -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Unknown")
+
+    NODE=$(oc get nodes -l node-role.kubernetes.io/cpu-worker -o name 2>/dev/null | head -1)
+    if [[ -n "$NODE" ]]; then
+        READY=$(oc get "$NODE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")
+        if [[ "$READY" == "True" ]]; then
+            log_info "CPU worker node is Ready!"
             oc get nodes -l node-role.kubernetes.io/cpu-worker
             exit 0
         fi
-        echo -n "."
-        sleep 10
-    done
-    echo
-    log_warn "Timeout waiting for CPU worker nodes ($READY_COUNT/$EXPECTED_READY ready)"
-fi
+        log_info "CPU worker node exists but not Ready yet (Machine: $MACHINE_STATUS, Node Ready: $READY)"
+    else
+        log_info "Waiting for CPU worker node... (Machine phase: $MACHINE_STATUS)"
+    fi
 
-log_info "Monitor with: oc get machines -n openshift-machine-api -w | grep cpu-worker"
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
+done
+
+log_warn "Timeout waiting for CPU worker node after $TIMEOUT seconds"
+log_warn "Check machine status: oc get machines -n openshift-machine-api | grep cpu-worker"
+log_warn "Check events: oc get events -n openshift-machine-api --sort-by='.lastTimestamp' | tail -20"
+exit 1
