@@ -115,9 +115,9 @@ main() {
 
     for app in "${SYNC_ORDER[@]}"; do
         if sync_app "$app"; then
-            ((success++))
+            success=$((success + 1))
         else
-            ((skipped++))
+            skipped=$((skipped + 1))
         fi
         echo ""
     done
