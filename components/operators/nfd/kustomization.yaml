@@ -8,3 +8,11 @@ patches:
       kind: Subscription
       name: nfd
     path: patch-channel.yaml
+  # Rename OperatorGroup to match OSD/OpenShift naming convention
+  - target:
+      kind: OperatorGroup
+      name: nfd-group
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: openshift-nfd-og
