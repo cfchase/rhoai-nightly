@@ -9,3 +9,11 @@ patches:
       kind: Subscription
       name: rhods-operator
     path: patch-channel.yaml
+  # Rename OperatorGroup to match bu-nightly naming convention
+  - target:
+      kind: OperatorGroup
+      name: rhods-operator-group
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: redhat-ods-operator
