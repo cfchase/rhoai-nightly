@@ -6,8 +6,9 @@ Deploy RHOAI 3.2 nightly builds using GitOps on OpenShift.
 
 ### 1. Provision Cluster
 
-Order **AWS with OpenShift Open Environment** from [demo.redhat.com](https://demo.redhat.com):
+Order **AWS with OpenShift Open Environment** from [demo.redhat.com](https://catalog.demo.redhat.com/):
 
+- Recommended to allocate 3 master nodes and 3 worker nodes
 - Select region with GPU availability (us-east-2 recommended)
 - Wait for provisioning email with credentials
 
@@ -17,7 +18,7 @@ Order **AWS with OpenShift Open Environment** from [demo.redhat.com](https://dem
 oc login --token=<token> --server=https://api.<cluster>:6443
 ```
 
-### 3. Configure Credentials
+### 3. Configure Credentials and customize any other settings
 
 ```bash
 cp .env.example .env
@@ -30,17 +31,31 @@ cp .env.example .env
 make
 ```
 
-This runs the full setup:
+Or, to disable auto-sync after deployment (for manual cluster changes):
 
-1. `pull-secret` - Add quay.io/rhoai credentials
-2. `icsp` - Configure registry mirror (waits ~10-15 min for node restart)
-3. `cpu` - Create CPU MachineSet m6a.4xlarge (waits for node Ready, autoscale 1-3)
-4. `gpu` - Create GPU MachineSet g5.2xlarge (waits for node Ready, autoscale 1-3)
-5. `gitops` - Install GitOps operator + ArgoCD (waits for ready)
-6. `deploy` - Deploy ArgoCD apps (sync disabled by default)
-7. `sync` - Staged sync of all apps one-by-one in dependency order
+```bash
+make all sync-disable
+```
+
+`make` (or `make all`) runs three phases:
+
+**Phase 1: `setup`** - Cluster preparation
+- `pull-secret` - Add quay.io/rhoai credentials
+- `icsp` - Configure registry mirror (waits ~10-15 min for node restart)
+- `cpu` - Create CPU MachineSet m6a.4xlarge (waits for node Ready)
+- `gpu` - Create GPU MachineSet g5.2xlarge (waits for node Ready)
+
+**Phase 2: `bootstrap`** - GitOps installation
+- `gitops` - Install GitOps operator + ArgoCD
+- `deploy` - Deploy ArgoCD apps (sync disabled by default)
+
+**Phase 3: `sync`** - Staged deployment
+- Syncs all apps one-by-one in dependency order
+- Enables auto-sync on each app after it's healthy
 
 Optionally run `make dedicate-masters` to remove worker role from master nodes.
+
+**Note:** After deployment, auto-sync is enabled. Run `make sync-disable` before making manual changes to the cluster, or ArgoCD will revert them.
 
 ## Individual Steps
 
