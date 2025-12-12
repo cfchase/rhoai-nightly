@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
   - https://github.com/redhat-cop/gitops-catalog/openshift-gitops-operator/instance/overlays/default?ref=main
   - cluster-admin-binding.yaml
+
+patches:
+  - path: patch-rbac.yaml
