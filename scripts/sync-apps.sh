@@ -142,6 +142,10 @@ sync_app() {
 
         if [[ "$health" == "Healthy" && "$sync" == "Synced" ]]; then
             log_info "$app: Synced + Healthy"
+            # For operator apps, also wait for CSV to be Succeeded
+            if wait_for_csv "$app" "$HEALTH_TIMEOUT"; then
+                echo ""  # Clear the progress line
+            fi
             return 0
         fi
 

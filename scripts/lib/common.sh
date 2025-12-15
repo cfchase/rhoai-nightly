@@ -122,6 +122,19 @@ OPERATOR_NAMESPACES=(
     "openshift-nfd"
 )
 
+# CSV info for operator apps: app-name -> "csv-prefix|namespace"
+# Used by sync-apps.sh to wait for CSV to be Succeeded before proceeding
+declare -A OPERATOR_CSV_INFO=(
+    ["nfd"]="nfd|openshift-nfd"
+    ["nvidia-operator"]="gpu-operator-certified|nvidia-gpu-operator"
+    ["openshift-service-mesh"]="servicemeshoperator3|openshift-operators"
+    ["kueue-operator"]="kueue-operator|openshift-kueue-operator"
+    ["leader-worker-set"]="leader-worker-set|openshift-lws-operator"
+    ["jobset-operator"]="jobset-operator|openshift-jobset-operator"
+    ["connectivity-link"]="rhcl-operator|openshift-operators"
+    ["rhoai-operator"]="rhods-operator|redhat-ods-operator"
+)
+
 # Check cluster connection
 check_cluster_connection() {
     if ! oc whoami &>/dev/null; then
@@ -129,6 +142,55 @@ check_cluster_connection() {
         exit 1
     fi
     log_info "Connected to: $(oc whoami --show-server)"
+}
+
+# Wait for operator CSV to be Succeeded
+# Usage: wait_for_csv "app-name" [timeout_seconds]
+# Returns 0 if CSV is Succeeded, 1 if not an operator app (no CSV info)
+wait_for_csv() {
+    local app="$1"
+    local timeout="${2:-300}"
+
+    # Check if this app has CSV info (is it an operator?)
+    local csv_info="${OPERATOR_CSV_INFO[$app]:-}"
+    [[ -z "$csv_info" ]] && return 1  # Not an operator app
+
+    local csv_prefix="${csv_info%%|*}"
+    local namespace="${csv_info##*|}"
+
+    local start_time=$(date +%s)
+
+    while true; do
+        # Get CSV status - look for any CSV matching the prefix
+        local csv_line=$(oc get csv -n "$namespace" 2>/dev/null | grep "^${csv_prefix}" | head -1 || true)
+
+        if [[ -n "$csv_line" ]]; then
+            local csv_name=$(echo "$csv_line" | awk '{print $1}')
+            local csv_phase=$(echo "$csv_line" | awk '{print $NF}')
+
+            if [[ "$csv_phase" == "Succeeded" ]]; then
+                log_info "CSV $csv_name is Succeeded"
+                return 0
+            fi
+
+            local elapsed=$(($(date +%s) - start_time))
+            if [[ $elapsed -ge $timeout ]]; then
+                log_warn "CSV $csv_name still $csv_phase after ${timeout}s (continuing anyway)"
+                return 0
+            fi
+
+            printf "  Waiting for CSV %s: %s (%ds)...\r" "$csv_name" "$csv_phase" "$elapsed"
+        else
+            local elapsed=$(($(date +%s) - start_time))
+            if [[ $elapsed -ge $timeout ]]; then
+                log_warn "No CSV found matching $csv_prefix in $namespace after ${timeout}s"
+                return 0
+            fi
+            printf "  Waiting for CSV %s in %s (%ds)...\r" "$csv_prefix" "$namespace" "$elapsed"
+        fi
+
+        sleep 5
+    done
 }
 
 # Run command or print dry-run message
