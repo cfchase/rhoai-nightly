@@ -1,7 +1,7 @@
 kind: DataScienceCluster
 apiVersion: datasciencecluster.opendatahub.io/v2
 metadata:
-  name: default
+  name: default-dsc
   annotations:
     argocd.argoproj.io/sync-wave: "1"
   labels:
@@ -18,12 +18,15 @@ spec:
       managementState: Managed
       nim:
         managementState: Managed
+      rawDeploymentServiceConfig: Headless
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
-      managementState: Unmanaged
+      managementState: Removed
     llamastackoperator:
       managementState: Managed
+    mlflowoperator:
+      managementState: Removed
     modelregistry:
       managementState: Managed
       registriesNamespace: rhoai-model-registries
@@ -34,6 +37,11 @@ spec:
     trainingoperator:
       managementState: Managed
     trustyai:
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
       managementState: Managed
     workbenches:
       managementState: Managed
+      workbenchNamespace: rhods-notebooks
