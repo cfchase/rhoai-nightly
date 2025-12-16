@@ -57,7 +57,8 @@ rhoai-nightly/
 │   │   ├── kueue-operator/              # Kueue for job queueing
 │   │   ├── jobset-operator/             # JobSet for distributed workloads
 │   │   ├── leader-worker-set/           # Leader-Worker pattern
-│   │   └── connectivity-link/           # Connectivity Link
+│   │   ├── connectivity-link/           # Connectivity Link
+│   │   └── nfs-provisioner/             # NFS Provisioner for RWX storage
 │   │
 │   └── instances/                       # Operator instances/configs
 │       ├── nfd-instance/                # NFD NodeFeatureDiscovery CR
@@ -65,7 +66,8 @@ rhoai-nightly/
 │       ├── rhoai-instance/              # DataScienceCluster + configs
 │       ├── jobset-instance/             # JobSet config
 │       ├── leader-worker-set-instance/  # Leader-Worker config
-│       └── connectivity-link-instance/  # Connectivity Link config
+│       ├── connectivity-link-instance/  # Connectivity Link config
+│       └── nfs-instance/                # NFSProvisioner CR (creates 'nfs' StorageClass)
 │
 ├── Makefile                             # Automation targets
 ├── .env.example                         # Configuration template
@@ -164,6 +166,8 @@ make refresh         # Force pull latest RHOAI nightly images
 
 make sync-disable    # Disable ArgoCD auto-sync (for manual changes)
 make sync-enable     # Re-enable ArgoCD auto-sync
+make refresh-apps    # Refresh and sync all apps (one-time, keeps current sync setting)
+                     # Use when auto-sync is disabled to pull latest from git
 
 make scale NAME=<machineset> REPLICAS=<N|+N|-N>
                      # Scale a MachineSet
@@ -219,10 +223,40 @@ GITOPS_BRANCH=main
 
 This repository uses two ApplicationSets to automatically sync components:
 
-1. **cluster-operators-appset.yaml**: Syncs all directories in `components/operators/*`
-2. **cluster-oper-instances-appset.yaml**: Syncs all directories in `components/instances/*`
+1. **cluster-operators-appset.yaml**: Syncs all directories in `components/operators/*` (git generator)
+2. **cluster-oper-instances-appset.yaml**: Syncs specific directories in `components/instances/*` (list generator)
 
-When you commit a new directory to `components/operators/` or `components/instances/`, ArgoCD automatically creates a corresponding Application and syncs it.
+When you commit a new directory to `components/operators/` or add an entry to the instances ApplicationSet, ArgoCD automatically creates a corresponding Application and syncs it.
+
+### ApplicationSet Sync Behavior (Important)
+
+ApplicationSets use `applicationsSync: create-only` which has specific implications:
+
+**Why `create-only`?**
+- `make sync` enables auto-sync on Applications one-by-one to avoid overwhelming the API server
+- Without `create-only`, the ApplicationSet would reset the syncPolicy back to the template's empty `syncPolicy: {}`
+- This would disable auto-sync after `make sync` runs
+
+**Implication: Template changes don't propagate to existing Applications**
+
+When you modify the ApplicationSet template (e.g., change `targetRevision`, `repoURL`, or add new list elements), existing Applications are NOT updated. Only new Applications get the updated template.
+
+**To apply template changes to existing Applications:**
+
+```bash
+# Option 1: Delete and let ApplicationSet recreate
+oc delete application.argoproj.io/<app-name> -n openshift-gitops
+# ApplicationSet recreates it with new template
+make sync-app APP=<app-name>
+
+# Option 2: Patch the Application directly
+oc patch application.argoproj.io/<app-name> -n openshift-gitops \
+  --type=merge -p '{"spec":{"source":{"targetRevision":"new-branch"}}}'
+```
+
+**When adding new components:**
+- New Applications are created automatically with the current template
+- No manual intervention needed for new apps
 
 ### Remote References with Local Patches
 

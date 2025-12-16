@@ -9,7 +9,7 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-.PHONY: help check gpu cpu pull-secret icsp setup gitops deploy bootstrap status validate all clean undeploy configure-repo scale refresh sync sync-app sync-disable sync-enable dedicate-masters
+.PHONY: help check gpu cpu pull-secret icsp setup gitops deploy bootstrap status validate all clean undeploy configure-repo scale refresh sync sync-app sync-disable sync-enable refresh-apps dedicate-masters
 
 # Default target - run everything
 .DEFAULT_GOAL := all
@@ -44,6 +44,7 @@ help:
 	@echo "ArgoCD Sync Control:"
 	@echo "  make sync-disable - Disable auto-sync on all apps (for manual changes)"
 	@echo "  make sync-enable  - Re-enable auto-sync on all apps"
+	@echo "  make refresh-apps - Refresh and sync all apps (one-time, keeps current sync setting)"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make undeploy     - Remove ArgoCD apps with cascade deletion (keeps GitOps)"
@@ -175,6 +176,18 @@ sync-enable:
 	@echo "Re-enabling auto-sync on all ArgoCD applications..."
 	@oc get applications.argoproj.io -n openshift-gitops -o name | xargs -I {} oc patch {} -n openshift-gitops --type=merge -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
 	@echo "Auto-sync re-enabled."
+
+# Refresh and sync all apps (one-time sync, does not change auto-sync setting)
+# Use when auto-sync is disabled and you want to pull latest from git
+refresh-apps:
+	@echo "Refreshing all apps from git..."
+	@oc get applications.argoproj.io -n openshift-gitops -o name | \
+	  xargs -I {} oc annotate {} -n openshift-gitops argocd.argoproj.io/refresh=hard --overwrite
+	@echo "Triggering sync on all apps..."
+	@oc get applications.argoproj.io -n openshift-gitops -o name | \
+	  xargs -I {} oc patch {} -n openshift-gitops --type=merge \
+	    -p '{"operation":{"initiatedBy":{"username":"make"},"sync":{"prune":true}}}'
+	@echo "All apps refreshed and syncing."
 
 # Remove worker role from master nodes (run after workers are Ready)
 dedicate-masters:

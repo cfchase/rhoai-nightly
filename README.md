@@ -100,6 +100,30 @@ After `make sync`, apps have auto-sync **ON** and will self-heal from git.
 make sync-disable                        # Disable auto-sync (for manual changes)
 make sync-enable                         # Re-enable auto-sync
 make sync-app APP=<name>                 # Sync single app + enable auto-sync on it
+make refresh-apps                        # Refresh and sync all apps (one-time, keeps current sync setting)
+```
+
+## Adding or Modifying Components
+
+When you add a new component or modify an ApplicationSet template, the changes won't automatically propagate to existing Applications. This is by design - ApplicationSets use `applicationsSync: create-only` to prevent overwriting the auto-sync settings that `make sync` enables.
+
+**To add a new component:**
+
+1. Create the component directory (e.g., `components/operators/my-operator/`)
+2. Add the entry to the ApplicationSet if using the list generator
+3. Commit and push to git
+4. The new Application will be created automatically
+
+**To update an existing Application after template changes:**
+
+If you change the ApplicationSet template (e.g., `targetRevision`, `repoURL`), existing Applications won't update. To apply template changes:
+
+```bash
+# Delete the app - ApplicationSet will recreate it with new template
+oc delete application.argoproj.io/<app-name> -n openshift-gitops
+
+# Then sync the recreated app
+make sync-app APP=<app-name>
 ```
 
 ## Requirements
