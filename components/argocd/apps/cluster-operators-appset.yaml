@@ -12,7 +12,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/cfchase/rhoai-nightly
-        revision: main
+        revision: bu-nightly-2
         directories:
           - path: components/operators/*
   template:
@@ -28,7 +28,7 @@ spec:
             - /spec/installPlanApproval
       source:
         repoURL: https://github.com/cfchase/rhoai-nightly
-        targetRevision: main
+        targetRevision: bu-nightly-2
         path: "{{path}}"
       destination:
         server: https://kubernetes.default.svc

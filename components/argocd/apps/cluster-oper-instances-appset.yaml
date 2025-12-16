@@ -47,6 +47,11 @@ spec:
               name: instance-nfs
               path: components/instances/nfs-instance/base
               namespace: openshift-gitops
+          - cluster: local
+            values:
+              name: instance-console
+              path: components/instances/console-config/base
+              namespace: openshift-gitops
   template:
     metadata:
       name: "{{values.name}}"
@@ -58,7 +63,7 @@ spec:
       syncPolicy: {}
       source:
         repoURL: https://github.com/cfchase/rhoai-nightly
-        targetRevision: main
+        targetRevision: bu-nightly-2
         path: "{{values.path}}"
       destination:
         server: https://kubernetes.default.svc

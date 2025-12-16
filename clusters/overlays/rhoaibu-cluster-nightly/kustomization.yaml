@@ -15,3 +15,8 @@ patches:
       kind: ApplicationSet
       name: cluster-oper-instances-applicationset
     path: patch-cluster-oper-instances-appset.yaml
+  - target:
+      group: argoproj.io
+      kind: ApplicationSet
+      name: cluster-demos-applicationset
+    path: patch-cluster-demos-appset.yaml

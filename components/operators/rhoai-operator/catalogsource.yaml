@@ -5,7 +5,8 @@ metadata:
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: quay.io/rhoai/rhoai-fbc-fragment:rhoai-3.2-nightly
+  # Pinned to Dec 16 build with RHOAIENG-42021 fix
+  image: quay.io/rhoai/rhoai-fbc-fragment:rhoai-3.2@sha256:1a483853c37e09af92e4e32d364ff6cef5f28bbb2a5a437525c2b76cc5c4f30a
   displayName: RHOAI 3.2 Nightly
   publisher: RHOAI Dev
   updateStrategy:
