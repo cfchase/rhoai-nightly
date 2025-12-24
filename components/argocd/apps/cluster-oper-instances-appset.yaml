@@ -63,7 +63,7 @@ spec:
       syncPolicy: {}
       source:
         repoURL: https://github.com/cfchase/rhoai-nightly
-        targetRevision: main
+        targetRevision: clusters
         path: "{{values.path}}"
       destination:
         server: https://kubernetes.default.svc
