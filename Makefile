@@ -188,7 +188,7 @@ sync-app:
 	@oc patch application.argoproj.io/$(APP) -n openshift-gitops --type=merge \
 	  -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
 	@echo "Triggering sync..."
-	@oc annotate application/$(APP) -n openshift-gitops \
+	@oc annotate application.argoproj.io/$(APP) -n openshift-gitops \
 	  argocd.argoproj.io/refresh=normal --overwrite
 	@echo "Sync enabled and triggered for $(APP)"
 

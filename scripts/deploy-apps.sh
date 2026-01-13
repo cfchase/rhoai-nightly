@@ -137,7 +137,7 @@ APPSET_WAIT_TIMEOUT=120
 start_time=$(date +%s)
 
 for appset in "cluster-operators-applicationset" "cluster-oper-instances-applicationset"; do
-    while ! oc get applicationset "$appset" -n openshift-gitops &>/dev/null; do
+    while ! oc get applicationset.argoproj.io "$appset" -n openshift-gitops &>/dev/null; do
         elapsed=$(($(date +%s) - start_time))
         if [[ $elapsed -ge $APPSET_WAIT_TIMEOUT ]]; then
             log_error "Timeout waiting for ApplicationSet '$appset'"

@@ -112,7 +112,7 @@ make gitops          # Install GitOps operator + ArgoCD
                      # VERIFY: oc get pods -n openshift-gitops
 
 make deploy          # Deploy root app (triggers all ApplicationSets)
-                     # VERIFY: oc get applications -n openshift-gitops
+                     # VERIFY: oc get applications.argoproj.io -n openshift-gitops
 
 # Phase 3: Monitor Deployment
 make status          # Show ArgoCD application sync status
@@ -325,8 +325,8 @@ git commit -m "Add my-operator"
 git push
 
 # 5. Verify ArgoCD syncs (wait ~1 minute)
-oc get applications -n openshift-gitops
-oc get application/my-operator -n openshift-gitops
+oc get applications.argoproj.io -n openshift-gitops
+oc get application.argoproj.io/my-operator -n openshift-gitops
 ```
 
 The ApplicationSet will automatically detect the new directory and create an Application.
@@ -501,8 +501,8 @@ oc get nodes
 
 # Check ArgoCD
 oc get pods -n openshift-gitops
-oc get applications -n openshift-gitops
-oc get applicationsets -n openshift-gitops
+oc get applications.argoproj.io -n openshift-gitops
+oc get applicationsets.argoproj.io -n openshift-gitops
 
 # Check operators
 oc get csv -A | grep -E "rhoai|nvidia|nfd"

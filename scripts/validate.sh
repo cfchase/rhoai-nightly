@@ -29,7 +29,7 @@ oc get csv -n openshift-gitops-operator 2>/dev/null | grep gitops || echo "Not i
 echo ""
 
 section "ArgoCD Applications"
-oc get applications -n openshift-gitops 2>/dev/null || echo "ArgoCD not ready"
+oc get applications.argoproj.io -n openshift-gitops 2>/dev/null || echo "ArgoCD not ready"
 echo ""
 
 section "RHOAI Operator"
