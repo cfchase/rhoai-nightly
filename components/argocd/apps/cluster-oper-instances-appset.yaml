@@ -61,6 +61,11 @@ spec:
     spec:
       project: default
       syncPolicy: {}
+      ignoreDifferences:
+        - group: nvidia.com
+          kind: ClusterPolicy
+          jsonPointers:
+            - /spec/driver/licensingConfig/secretName
       source:
         repoURL: https://github.com/rh-aiservices-bu/rhoai-nightly
         targetRevision: main
