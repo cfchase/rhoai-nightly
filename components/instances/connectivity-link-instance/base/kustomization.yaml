@@ -2,10 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
+  - service-annotation.yaml  # Creates Service with cert annotation (sync-wave: 0)
   - kuadrant.yaml
-  - authorino.yaml
-
-# Note: service-annotation.yaml removed because:
-# 1. It's an incomplete Service (missing spec.ports)
-# 2. The Service is created by Authorino operator
-# 3. Use a post-sync hook or manual patch if cert annotation is needed
+  - authorino.yaml           # References the cert secret (sync-wave: 1)
